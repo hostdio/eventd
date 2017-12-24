@@ -70,3 +70,9 @@ func (e PublishedEvent) JSON() []byte {
 type Publisher interface {
 	Publish(ctx context.Context, event PublishEvent) (string, error)
 }
+
+type EventHandler func(ctx context.Context, event PublishedEvent)
+
+type Listener interface {
+	Listen(context.Context, EventHandler) error
+}

@@ -9,8 +9,6 @@ import (
 	"github.com/hostdio/eventd/queues/googlepubsub"
 	"context"
 	"fmt"
-	"cloud.google.com/go/pubsub"
-	"time"
 	"github.com/hostdio/eventd/databases/postgres"
 )
 
@@ -30,29 +28,21 @@ func Cmd() *cobra.Command {
 			subID := args[2]
 			connStr := args[3]
 
-			// refactor
-			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-			defer cancel()
-			pubsubClient, err := pubsub.NewClient(ctx, projectID)
+
+
+			r := mux.NewRouter()
+			publisher, err := googlepubsub.New(context.Background(), projectID, topicID, subID)
 			if err != nil {
 				panic(err)
 			}
-			defer pubsubClient.Close()
-			subscription := pubsubClient.Subscription(subID)
-
+			defer publisher.Close()
 			persistor, dbErr := postgres.New(connStr)
 			if dbErr != nil {
 				panic(dbErr)
 			}
 
-			go startPersister(context.Background(), subscription, persistor)
+			go startPersister(context.Background(), publisher, persistor)
 
-			r := mux.NewRouter()
-			publisher, err := googlepubsub.New(context.Background(), projectID, topicID)
-			if err != nil {
-				panic(err)
-			}
-			defer publisher.Close()
 			r.HandleFunc("/", publishHandler(publisher)).Methods("POST")
 			log.Fatal(http.ListenAndServe(":8080", r))
 		},
