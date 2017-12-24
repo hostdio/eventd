@@ -8,7 +8,8 @@ CREATE TABLE event_store (
   event_timestamp     TIMESTAMP     NOT NULL,
   event_payload       JSON,
   event_source        VARCHAR(2000) NOT NULL,
-  received_timestamp  TIMESTAMP     NOT NULL
+  received_timestamp  TIMESTAMP     NOT NULL,
+  stored_timestamp    TIMESTAMP     NOT NULL
 );
 
 -- +goose Down

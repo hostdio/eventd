@@ -50,6 +50,18 @@
   version = "v1.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/lib/pq"
+  packages = [".","oid"]
+  revision = "83612a56d3dd153a94a629cd64925371c9adad78"
+
+[[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
+
+[[projects]]
   name = "github.com/spf13/cobra"
   packages = ["."]
   revision = "7b2c5ac9fc04fc5efafb60700713d4fa609b777b"
@@ -118,6 +130,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "091765d622bda8e9a8fdaacc8433fa14a3ce5fd1254e6de2c9eb5a7e6c0a6d28"
+  inputs-digest = "df0bbcd6218a3d6d7da9b6e577442fb0e7cfa14baa14928abc21c216aee5a6e1"
   solver-name = "gps-cdcl"
   solver-version = 1
