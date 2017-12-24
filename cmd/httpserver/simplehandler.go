@@ -37,7 +37,7 @@ type Response struct {
 }
 
 func SimpleHandler(
-	handler func([]byte, *http.Request) (Response, error),
+	handler func([]byte, *http.Request) (*Response, error),
 	errorHandler func(error) ErrorPayload) http.HandlerFunc {
 		errors := func(err error, w http.ResponseWriter) {
 			payload := errorHandler(err)
