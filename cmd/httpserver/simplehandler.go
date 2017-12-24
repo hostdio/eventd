@@ -51,6 +51,7 @@ func SimpleHandler(
 			errors(err, w)
 			return
 		}
+		defer r.Body.Close()
 		resp, err := handler(byt, r)
 		if err != nil {
 			errors(err, w)
