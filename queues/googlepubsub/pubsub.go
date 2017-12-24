@@ -45,8 +45,9 @@ func (p Pubsub) Close() error {
 }
 
 func (p Pubsub) Publish(ctx context.Context, event api.PublishEvent) (string, error) {
+	receivedEvent := event.Received()
 	msg := &pubsub.Message{
-		Data: event.JSON(),
+		Data: receivedEvent.JSON(),
 	}
 	res := p.topic.Publish(ctx, msg)
 	serverID, err := res.Get(ctx)

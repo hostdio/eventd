@@ -21,6 +21,7 @@ func publishHandler(publisher api.Publisher) http.HandlerFunc {
 			log.Println(err)
 			return nil, err
 		}
+		
 		ctx, cancel := context.WithTimeout(r.Context(), 10 * time.Second)
 		defer cancel()
 		if _, err := publisher.Publish(ctx, event); err != nil {
