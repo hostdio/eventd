@@ -10,14 +10,49 @@ import (
 	"context"
 	"fmt"
 	"github.com/hostdio/eventd/databases/postgres"
+	"github.com/hostdio/eventd/databases/inmemory"
 )
 
 // Cmd returns the command for starting an http server
 func Cmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "httpserver <project ID> <topic ID>",
 		Short: "httpserver starts the event sourcing HTTP API server",
 		Long:  `httpserver exposes the event sourcing through an HTTP API server. `,
+	}
+
+	cmd.AddCommand(cmdProduction())
+	cmd.AddCommand(cmdLocal())
+
+	return cmd
+}
+
+func cmdLocal() *cobra.Command{
+	return &cobra.Command{
+		Use: "local",
+		Short: "local starts the event sourcing HTTP API server",
+		Long:  `local exposes the event sourcing through an HTTP API server. `,
+		Run: func(cmd *cobra.Command, args []string) {
+			r := mux.NewRouter()
+
+			publisher := inmemory.NewQueue()
+			persistor := inmemory.NewDatabase()
+
+			go startPersister(context.Background(), publisher, persistor)
+
+			r.HandleFunc("/", publishHandler(publisher)).Methods("POST")
+			r.HandleFunc("/", scanHandler(persistor)).Methods("GET")
+
+			log.Fatal(http.ListenAndServe(":8080", r))
+		},
+	}
+}
+
+func cmdProduction() *cobra.Command{
+	return &cobra.Command{
+		Use: "production <project ID> <topic ID>",
+		Short: "production starts the event sourcing HTTP API server",
+		Long:  `production exposes the event sourcing through an HTTP API server. `,
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) < 4 {
 				fmt.Println("Missing either projectID, topicID, subID, or connStr")
@@ -48,3 +83,6 @@ func Cmd() *cobra.Command {
 		},
 	}
 }
+
+
+

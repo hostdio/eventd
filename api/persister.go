@@ -14,3 +14,6 @@ type PersistedEvent struct {
 type Persister interface {
 	Store(context.Context, PublishedEvent) error
 }
+
+
+
