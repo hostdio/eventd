@@ -30,7 +30,7 @@ func (c Database) Store(ctx context.Context, event api.PublishedEvent) error {
 	return nil
 }
 
-func (c Database) Scan(ctx context.Context, from time.Time) []api.PersistedEvent {
+func (c Database) Scan(ctx context.Context, from time.Time, limit int) ([]api.PersistedEvent, error) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	events := []api.PersistedEvent{}
@@ -40,5 +40,5 @@ func (c Database) Scan(ctx context.Context, from time.Time) []api.PersistedEvent
 		}
 		events = append(events, event)
 	}
-	return events
+	return events, nil
 }

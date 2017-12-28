@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/hostdio/eventd/databases/postgres"
 	"github.com/hostdio/eventd/databases/inmemory"
+	"github.com/hostdio/eventd/api"
 )
 
 // Cmd returns the command for starting an http server
@@ -33,15 +34,10 @@ func cmdLocal() *cobra.Command{
 		Short: "local starts the event sourcing HTTP API server",
 		Long:  `local exposes the event sourcing through an HTTP API server. `,
 		Run: func(cmd *cobra.Command, args []string) {
-			r := mux.NewRouter()
-
 			publisher := inmemory.NewQueue()
 			persistor := inmemory.NewDatabase()
 
-			go startPersister(context.Background(), publisher, persistor)
-
-			r.HandleFunc("/", publishHandler(publisher)).Methods("POST")
-			r.HandleFunc("/", scanHandler(persistor)).Methods("GET")
+			r := getmux(persistor, persistor, publisher, publisher)
 
 			log.Fatal(http.ListenAndServe(":8080", r))
 		},
@@ -63,9 +59,6 @@ func cmdProduction() *cobra.Command{
 			subID := args[2]
 			connStr := args[3]
 
-
-
-			r := mux.NewRouter()
 			publisher, err := googlepubsub.New(context.Background(), projectID, topicID, subID)
 			if err != nil {
 				panic(err)
@@ -76,12 +69,22 @@ func cmdProduction() *cobra.Command{
 				panic(dbErr)
 			}
 
-			go startPersister(context.Background(), publisher, persistor)
+			r := getmux(persistor, persistor, publisher, publisher)
 
-			r.HandleFunc("/", publishHandler(publisher)).Methods("POST")
 			log.Fatal(http.ListenAndServe(":8080", r))
 		},
 	}
+}
+
+func getmux(scanner api.Scanner, persister api.Persister, publisher api.Publisher, listener api.Listener) *mux.Router {
+	r := mux.NewRouter()
+
+	go startPersister(context.Background(), listener, persister)
+
+	r.HandleFunc("/", publishHandler(publisher)).Methods("POST")
+	r.HandleFunc("/", scanHandler(scanner)).Methods("GET")
+
+	return r
 }
 
 

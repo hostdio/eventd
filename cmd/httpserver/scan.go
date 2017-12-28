@@ -7,6 +7,11 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"strconv"
+)
+
+var (
+	defaultLimit = 10
 )
 
 type scanResponse struct {
@@ -37,7 +42,21 @@ func scanHandler(scanner api.Scanner) http.HandlerFunc {
 			return nil, parseErr
 		}
 
-		persistedEvents := scanner.Scan(r.Context(), from)
+		limit := defaultLimit
+		limitStr := val.Get("limit")
+		if limitStr != "" {
+			parseLimit, err := strconv.Atoi(limitStr)
+			if err != nil {
+				return nil, errors.New("Illegal limit value")
+			}
+			limit = parseLimit
+		}
+
+		persistedEvents, scanErr := scanner.Scan(r.Context(), from, limit)
+
+		if scanErr != nil {
+			return nil, scanErr
+		}
 
 		resp := scanResponse{Events:persistedEvents}
 

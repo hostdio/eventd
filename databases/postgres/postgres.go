@@ -1,15 +1,17 @@
 package postgres
 
 import (
-	"database/sql"
 	"context"
+	"database/sql"
+
 	"github.com/hostdio/eventd/api"
+
+	"encoding/json"
+	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
-	"encoding/json"
 )
-
 
 func New(connStr string) (*Client, error) {
 	db, err := sql.Open("postgres", connStr)
@@ -54,18 +56,18 @@ var (
 
 func (c Client) Store(ctx context.Context, event api.PublishedEvent) error {
 	stmt, prepErr := c.db.PrepareContext(ctx, insertQuery)
-	if prepErr!= nil {
+	if prepErr != nil {
 		return errors.Wrap(prepErr, "postgres store: Could not prepare query")
 	}
 	defer stmt.Close()
 	_, execErr := stmt.ExecContext(ctx,
-			event.ID,
-			event.Type,
-			event.Version,
-			event.Timestamp,
-			payloadToJSON(event.Payload),
-			event.Source,
-			event.ReceivedTimestamp)
+		event.ID,
+		event.Type,
+		event.Version,
+		event.Timestamp,
+		payloadToJSON(event.Payload),
+		event.Source,
+		event.ReceivedTimestamp)
 
 	if execErr != nil {
 		return execErr
@@ -78,7 +80,7 @@ func payloadToJSON(payload string) []byte {
 		return []byte("{}")
 	}
 	var p interface{}
-	if err := json.Unmarshal([]byte(payload),&p); err != nil {
+	if err := json.Unmarshal([]byte(payload), &p); err != nil {
 		panic(err)
 	}
 	switch p.(type) {
@@ -94,4 +96,83 @@ func payloadToJSON(payload string) []byte {
 		}
 		return byt
 	}
+}
+
+var (
+	scanQuery = `
+	SELECT
+		event_id,
+		event_type,
+		event_version,
+		event_timestamp,
+		event_payload,
+		event_source,
+		received_timestamp,
+		stored_timestamp
+	FROM
+		event_store
+	WHERE
+		stored_timestamp >= $1
+    LIMIT $2;
+	`
+)
+
+type persistedEvent struct {
+	ID                string
+	Type              string
+	Version           string
+	Timestamp         time.Time
+	Payload           string
+	Source            string
+	StoredTimestamp   time.Time
+	ReceivedTimestamp time.Time
+}
+
+func (c Client) Scan(ctx context.Context, from time.Time, limit int) ([]api.PersistedEvent, error) {
+	stmt, prepErr := c.db.PrepareContext(ctx, scanQuery)
+	if prepErr != nil {
+		panic(prepErr)
+	}
+	defer stmt.Close()
+	rows, err := stmt.QueryContext(ctx, from, limit)
+	if err != nil {
+		return nil, err
+	}
+	events := []api.PersistedEvent{}
+	for rows.Next() {
+		var pevent persistedEvent
+		if err := rows.Scan(
+			&pevent.ID,
+			&pevent.Type,
+			&pevent.Version,
+			&pevent.Timestamp,
+			&pevent.Payload,
+			&pevent.Source,
+			&pevent.StoredTimestamp,
+			&pevent.ReceivedTimestamp,
+		); err != nil {
+			return nil, err
+		}
+		event := api.PersistedEvent{
+			PublishedEvent: &api.PublishedEvent{
+				PublishEvent: &api.PublishEvent{
+					BaseEvent: &api.BaseEvent{
+						ID:        pevent.ID,
+						Type:      pevent.Type,
+						Version:   pevent.Version,
+						Timestamp: pevent.Timestamp,
+						Payload:   pevent.Payload,
+						Source:    pevent.Source,
+					},
+				},
+				ReceivedTimestamp: pevent.ReceivedTimestamp,
+			},
+			StoredTimestamp: pevent.StoredTimestamp,
+		}
+
+		events = append(events, event)
+
+	}
+
+	return events, nil
 }
