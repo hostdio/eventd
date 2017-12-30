@@ -6,12 +6,15 @@ import (
 )
 
 func Test_publishEventValidator_works(t *testing.T) {
-	e := PublishEvent{
-		ID: []byte("ID"),
-		Type: []byte("eventType"),
-		Version: []byte("1"),
+	base := BaseEvent{
+		ID:        "ID",
+		Type:      "eventType",
+		Version:   "1",
 		Timestamp: time.Now(),
-		Source: []byte("self"),
+		Source:    "self",
+	}
+	e := PublishEvent{
+		BaseEvent: &base,
 	}
 	if err := e.Validate(); err != nil {
 		t.Log(err)
@@ -20,11 +23,14 @@ func Test_publishEventValidator_works(t *testing.T) {
 }
 
 func Test_publishEventValidator_missingID(t *testing.T) {
-	e := PublishEvent{
-		Type: []byte("eventType"),
-		Version: []byte("1"),
+	base := BaseEvent{
+		Type:      "eventType",
+		Version:   "1",
 		Timestamp: time.Now(),
-		Source: []byte("self"),
+		Source:    "self",
+	}
+	e := PublishEvent{
+		BaseEvent: &base,
 	}
 	if err := e.Validate(); err == nil {
 		t.Log(err)
@@ -33,11 +39,14 @@ func Test_publishEventValidator_missingID(t *testing.T) {
 }
 
 func Test_publishEventValidator_missingType(t *testing.T) {
-	e := PublishEvent{
-		ID: []byte("ID"),
-		Version: []byte("1"),
+	base := BaseEvent{
+		ID:        "ID",
+		Version:   "1",
 		Timestamp: time.Now(),
-		Source: []byte("self"),
+		Source:    "self",
+	}
+	e := PublishEvent{
+		BaseEvent: &base,
 	}
 	if err := e.Validate(); err == nil {
 		t.Log(err)
@@ -46,11 +55,14 @@ func Test_publishEventValidator_missingType(t *testing.T) {
 }
 
 func Test_publishEventValidator_missingVersion(t *testing.T) {
-	e := PublishEvent{
-		Type: []byte("eventType"),
-		ID: []byte("ID"),
+	base := BaseEvent{
+		Type:      "eventType",
+		ID:        "ID",
 		Timestamp: time.Now(),
-		Source: []byte("self"),
+		Source:    "self",
+	}
+	e := PublishEvent{
+		BaseEvent: &base,
 	}
 	if err := e.Validate(); err == nil {
 		t.Log(err)
