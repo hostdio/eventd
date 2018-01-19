@@ -33,14 +33,14 @@ func (c Client) Close() error {
 var (
 	insertQuery = `
 	INSERT INTO event_store(
-		event_id,
-		event_type,
-		event_version,
-		event_timestamp,
-		event_payload,
-		event_source,
-		received_timestamp,
-		stored_timestamp)
+		namespace
+		type
+		id
+		version
+		source
+		produced
+		data
+		metadata)
 	VALUES (
 		$1,
 		$2,
@@ -48,8 +48,8 @@ var (
 		$4,
 		$5,
 		$6,
-		NOW(),
-		NOW()
+		$7,
+		$8
 	);`
 )
 
@@ -60,12 +60,14 @@ func (c Client) Store(ctx context.Context, event eventkit.Event) error {
 	}
 	defer stmt.Close()
 	_, execErr := stmt.ExecContext(ctx,
-		event.ID,
+		event.Namespace,
 		event.Type,
+		event.ID,
 		event.Version,
+		event.Source,
 		event.Produced,
 		event.Data.JSON(),
-		event.Source)
+		event.Metadata.JSON())
 
 	if execErr != nil {
 		return execErr
@@ -76,31 +78,31 @@ func (c Client) Store(ctx context.Context, event eventkit.Event) error {
 var (
 	scanQuery = `
 	SELECT
-		event_id,
-		event_type,
-		event_version,
-		event_timestamp,
-		event_payload,
-		event_source,
-		received_timestamp,
-		stored_timestamp
+		namespace,
+		type,
+		id,
+		version,
+		source,
+		produced,
+		data,
+		metadata
 	FROM
 		event_store
 	WHERE
-		stored_timestamp >= $1
+		produced >= $1
     LIMIT $2;
 	`
 )
 
 type persistedEvent struct {
-	ID                string
-	Type              string
-	Version           string
-	Timestamp         time.Time
-	Payload           string
-	Source            string
-	StoredTimestamp   time.Time
-	ReceivedTimestamp time.Time
+	Namespace string
+	Type      string
+	ID        string
+	Version   string
+	Source    string
+	Produced  time.Time
+	Data      []byte
+	Metadata  []byte
 }
 
 func (c Client) Scan(ctx context.Context, from time.Time, limit int) ([]eventkit.Event, error) {
@@ -117,14 +119,14 @@ func (c Client) Scan(ctx context.Context, from time.Time, limit int) ([]eventkit
 	for rows.Next() {
 		var pevent persistedEvent
 		if err := rows.Scan(
-			&pevent.ID,
+			&pevent.Namespace,
 			&pevent.Type,
+			&pevent.ID,
 			&pevent.Version,
-			&pevent.Timestamp,
-			&pevent.Payload,
 			&pevent.Source,
-			&pevent.StoredTimestamp,
-			&pevent.ReceivedTimestamp,
+			&pevent.Produced,
+			&pevent.Data,
+			&pevent.Metadata,
 		); err != nil {
 			return nil, err
 		}
@@ -135,7 +137,7 @@ func (c Client) Scan(ctx context.Context, from time.Time, limit int) ([]eventkit
 			ID:        pevent.ID,
 			Version:   pevent.Version,
 			Source:    pevent.Source,
-			Produced:  pevent.Timestamp,
+			Produced:  pevent.Produced,
 			// Data:      pevent.Payload,
 			// Metadata: map[string]interface{}{"exception": "not implemented"},
 		}

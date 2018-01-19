@@ -33,8 +33,8 @@ func cmdProduction() *cobra.Command {
 		Short: "production starts the event sourcing HTTP API server",
 		Long:  `production exposes the event sourcing through an HTTP API server. `,
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) < 4 {
-				fmt.Println("Missing either projectID, topicID, subID, or connStr")
+			if len(args) < 3 {
+				fmt.Println("Missing either projectID, subID, or connStr")
 				return
 			}
 			projectID := args[0]
