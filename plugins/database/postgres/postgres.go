@@ -4,9 +4,8 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/hostdio/eventd/api"
+	"github.com/hostdio/eventd/eventkit"
 
-	"encoding/json"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -49,12 +48,12 @@ var (
 		$4,
 		$5,
 		$6,
-		$7,
+		NOW(),
 		NOW()
 	);`
 )
 
-func (c Client) Store(ctx context.Context, event api.PublishedEvent) error {
+func (c Client) Store(ctx context.Context, event eventkit.Event) error {
 	stmt, prepErr := c.db.PrepareContext(ctx, insertQuery)
 	if prepErr != nil {
 		return errors.Wrap(prepErr, "postgres store: Could not prepare query")
@@ -64,38 +63,14 @@ func (c Client) Store(ctx context.Context, event api.PublishedEvent) error {
 		event.ID,
 		event.Type,
 		event.Version,
-		event.Timestamp,
-		payloadToJSON(event.Payload),
-		event.Source,
-		event.ReceivedTimestamp)
+		event.Produced,
+		event.Data.JSON(),
+		event.Source)
 
 	if execErr != nil {
 		return execErr
 	}
 	return nil
-}
-
-func payloadToJSON(payload string) []byte {
-	if payload == "" {
-		return []byte("{}")
-	}
-	var p interface{}
-	if err := json.Unmarshal([]byte(payload), &p); err != nil {
-		panic(err)
-	}
-	switch p.(type) {
-	case map[string]interface{}:
-		return []byte(payload)
-	default:
-		payloadJSON := map[string]interface{}{
-			"payload": payload,
-		}
-		byt, marshalErr := json.Marshal(payloadJSON)
-		if marshalErr != nil {
-			panic(marshalErr)
-		}
-		return byt
-	}
 }
 
 var (
@@ -128,7 +103,7 @@ type persistedEvent struct {
 	ReceivedTimestamp time.Time
 }
 
-func (c Client) Scan(ctx context.Context, from time.Time, limit int) ([]api.PersistedEvent, error) {
+func (c Client) Scan(ctx context.Context, from time.Time, limit int) ([]eventkit.Event, error) {
 	stmt, prepErr := c.db.PrepareContext(ctx, scanQuery)
 	if prepErr != nil {
 		panic(prepErr)
@@ -138,7 +113,7 @@ func (c Client) Scan(ctx context.Context, from time.Time, limit int) ([]api.Pers
 	if err != nil {
 		return nil, err
 	}
-	events := []api.PersistedEvent{}
+	events := []eventkit.Event{}
 	for rows.Next() {
 		var pevent persistedEvent
 		if err := rows.Scan(
@@ -153,23 +128,17 @@ func (c Client) Scan(ctx context.Context, from time.Time, limit int) ([]api.Pers
 		); err != nil {
 			return nil, err
 		}
-		event := api.PersistedEvent{
-			PublishedEvent: &api.PublishedEvent{
-				PublishEvent: &api.PublishEvent{
-					BaseEvent: &api.BaseEvent{
-						ID:        pevent.ID,
-						Type:      pevent.Type,
-						Version:   pevent.Version,
-						Timestamp: pevent.Timestamp,
-						Payload:   pevent.Payload,
-						Source:    pevent.Source,
-					},
-				},
-				ReceivedTimestamp: pevent.ReceivedTimestamp,
-			},
-			StoredTimestamp: pevent.StoredTimestamp,
-		}
 
+		event := eventkit.Event{
+			Namespace: "not set",
+			Type:      pevent.Type,
+			ID:        pevent.ID,
+			Version:   pevent.Version,
+			Source:    pevent.Source,
+			Produced:  pevent.Timestamp,
+			// Data:      pevent.Payload,
+			// Metadata: map[string]interface{}{"exception": "not implemented"},
+		}
 		events = append(events, event)
 
 	}

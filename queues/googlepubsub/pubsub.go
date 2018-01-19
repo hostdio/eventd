@@ -1,11 +1,13 @@
 package googlepubsub
 
 import (
-	"cloud.google.com/go/pubsub"
 	"context"
-	"github.com/hostdio/eventd/api"
-	"errors"
 	"encoding/json"
+	"errors"
+
+	"github.com/hostdio/eventd/eventkit"
+
+	"cloud.google.com/go/pubsub"
 )
 
 var (
@@ -28,15 +30,15 @@ func New(ctx context.Context, projectID, topicID, subscriptionID string) (*Pubsu
 	}
 	subscription := client.Subscription(subscriptionID)
 	return &Pubsub{
-		client:client,
-		topic: topic,
+		client:       client,
+		topic:        topic,
 		subscription: subscription,
 	}, nil
 }
 
 type Pubsub struct {
-	client *pubsub.Client
-	topic *pubsub.Topic
+	client       *pubsub.Client
+	topic        *pubsub.Topic
 	subscription *pubsub.Subscription
 }
 
@@ -44,19 +46,9 @@ func (p Pubsub) Close() error {
 	return p.client.Close()
 }
 
-func (p Pubsub) Publish(ctx context.Context, event api.PublishEvent) (string, error) {
-	receivedEvent := event.Received()
-	msg := &pubsub.Message{
-		Data: receivedEvent.JSON(),
-	}
-	res := p.topic.Publish(ctx, msg)
-	serverID, err := res.Get(ctx)
-	return serverID, err
-}
-
-func (p Pubsub) Listen(ctx context.Context, handler api.EventHandler) error {
+func (p Pubsub) Listen(ctx context.Context, handler func(context.Context, eventkit.Event)) error {
 	err := p.subscription.Receive(ctx, func(ctx context.Context, m *pubsub.Message) {
-		var event api.PublishedEvent
+		var event eventkit.Event
 		if unmarshallErr := json.Unmarshal(m.Data, &event); unmarshallErr != nil {
 			panic(unmarshallErr)
 		}

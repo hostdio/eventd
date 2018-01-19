@@ -12,19 +12,31 @@ import (
 // Event is the common event structure expected to be used
 // by event producers and consumers
 type Event struct {
-	Namespace string                 `json:"namespace"`
-	Type      string                 `json:"type"`
-	ID        string                 `json:"id"`
-	Version   string                 `json:"version"`
-	Source    string                 `json:"source"`
-	Produced  time.Time              `json:"produced"`
-	Data      map[string]interface{} `json:"data"`
-	Metadata  map[string]interface{} `json:"Metadata"`
+	Namespace string    `json:"namespace"`
+	Type      string    `json:"type"`
+	ID        string    `json:"id"`
+	Version   string    `json:"version"`
+	Source    string    `json:"source"`
+	Produced  time.Time `json:"produced"`
+	Data      JSONData  `json:"data"`
+	Metadata  JSONData  `json:"metadata"`
 }
 
 // JSON serializes itself into a JSON object
 func (e Event) JSON() []byte {
 	byt, err := json.Marshal(e)
+	if err != nil {
+		panic(err)
+	}
+	return byt
+}
+
+// JSONData is the abstraction of a JSON data structure
+type JSONData map[string]interface{}
+
+// JSON serializes itself into a JSON object
+func (d JSONData) JSON() []byte {
+	byt, err := json.Marshal(d)
 	if err != nil {
 		panic(err)
 	}

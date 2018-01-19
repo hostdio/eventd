@@ -38,7 +38,7 @@ func cmdLocal() *cobra.Command {
 			publisher := inmemory.NewQueue()
 			persistor := inmemory.NewDatabase()
 
-			r := getmux(persistor, persistor, publisher, publisher)
+			r := getmux(persistor, persistor, publisher)
 
 			log.Fatal(http.ListenAndServe(":8080", r))
 		},
@@ -70,19 +70,18 @@ func cmdProduction() *cobra.Command {
 				panic(dbErr)
 			}
 
-			r := getmux(persistor, persistor, publisher, publisher)
+			r := getmux(persistor, persistor, publisher)
 
 			log.Fatal(http.ListenAndServe(":8080", r))
 		},
 	}
 }
 
-func getmux(scanner api.Scanner, persister api.Persister, publisher api.Publisher, listener api.Listener) *mux.Router {
+func getmux(scanner api.Scanner, persister api.Persister, listener api.Listener) *mux.Router {
 	r := mux.NewRouter()
 
 	go startPersister(context.Background(), listener, persister)
 
-	r.HandleFunc("/", publishHandler(publisher)).Methods("POST")
 	r.HandleFunc("/", scanHandler(scanner)).Methods("GET")
 
 	return r
