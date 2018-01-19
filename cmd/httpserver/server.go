@@ -4,14 +4,15 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gorilla/mux"
-	"github.com/spf13/cobra"
-	"github.com/hostdio/eventd/queues/googlepubsub"
 	"context"
 	"fmt"
-	"github.com/hostdio/eventd/databases/postgres"
-	"github.com/hostdio/eventd/databases/inmemory"
+
+	"github.com/gorilla/mux"
 	"github.com/hostdio/eventd/api"
+	"github.com/hostdio/eventd/plugins/database/inmemory"
+	"github.com/hostdio/eventd/plugins/database/postgres"
+	"github.com/hostdio/eventd/queues/googlepubsub"
+	"github.com/spf13/cobra"
 )
 
 // Cmd returns the command for starting an http server
@@ -28,9 +29,9 @@ func Cmd() *cobra.Command {
 	return cmd
 }
 
-func cmdLocal() *cobra.Command{
+func cmdLocal() *cobra.Command {
 	return &cobra.Command{
-		Use: "local",
+		Use:   "local",
 		Short: "local starts the event sourcing HTTP API server",
 		Long:  `local exposes the event sourcing through an HTTP API server. `,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -44,9 +45,9 @@ func cmdLocal() *cobra.Command{
 	}
 }
 
-func cmdProduction() *cobra.Command{
+func cmdProduction() *cobra.Command {
 	return &cobra.Command{
-		Use: "production <project ID> <topic ID>",
+		Use:   "production <project ID> <topic ID>",
 		Short: "production starts the event sourcing HTTP API server",
 		Long:  `production exposes the event sourcing through an HTTP API server. `,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -86,6 +87,3 @@ func getmux(scanner api.Scanner, persister api.Persister, publisher api.Publishe
 
 	return r
 }
-
-
-
