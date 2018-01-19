@@ -1,9 +1,9 @@
 package httpserver
 
 import (
-	"net/http"
-	"io/ioutil"
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
 )
 
 func jsonSeralizer(p interface{}) []byte {
@@ -22,8 +22,8 @@ var (
 )
 
 type ErrorPayload struct {
-	Status int
-	Message string
+	Status           int
+	Message          string
 	DeveloperMessage string
 }
 
@@ -32,19 +32,19 @@ func (p ErrorPayload) Serialize(seralizer Serializer) []byte {
 }
 
 type Response struct {
-	Payload []byte
+	Payload    []byte
 	StatusCode int
 }
 
 func SimpleHandler(
 	handler func([]byte, *http.Request) (*Response, error),
 	errorHandler func(error) ErrorPayload) http.HandlerFunc {
-		errors := func(err error, w http.ResponseWriter) {
-			payload := errorHandler(err)
-			w.WriteHeader(payload.Status)
-			output := payload.Serialize(SerializerJSON)
-			w.Write(output)
-		}
+	errors := func(err error, w http.ResponseWriter) {
+		payload := errorHandler(err)
+		w.WriteHeader(payload.Status)
+		output := payload.Serialize(SerializerJSON)
+		w.Write(output)
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		byt, err := ioutil.ReadAll(r.Body)
 		if err != nil {

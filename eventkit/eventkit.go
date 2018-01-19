@@ -77,6 +77,20 @@ func (p PubsubProducer) Close() error {
 	return p.ps.Close()
 }
 
+// NewPubsubConsumer returns a new PubsubConsumer
+func NewPubsubConsumer(ctx context.Context, projectID, subID string) PubsubConsumer {
+	ps, err := pubsub.NewClient(context.Background(), projectID)
+	if err != nil {
+		panic(err)
+	}
+	consumer := PubsubConsumer{
+		ps:             ps,
+		subscriptionID: subID,
+	}
+
+	return consumer
+}
+
 // PubsubConsumer consumes the pubsub events made available to a subscription
 type PubsubConsumer struct {
 	ps              *pubsub.Client

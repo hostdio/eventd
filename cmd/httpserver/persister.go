@@ -7,12 +7,13 @@ import (
 	"github.com/hostdio/eventd/eventkit"
 )
 
-func startPersister(ctx context.Context, listener api.Listener, persister api.Persister) error {
+func startPersister(ctx context.Context, consumer eventkit.Consumer, persister api.Persister) error {
 
-	err := listener.Listen(ctx, func(ctx context.Context, event eventkit.Event) {
+	err := consumer.Consume(ctx, func(event eventkit.Event) error {
 		if persistErr := persister.Store(ctx, event); persistErr != nil {
-			panic(persistErr)
+			return persistErr
 		}
+		return nil
 	})
 
 	return err
